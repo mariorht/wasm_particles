@@ -1,9 +1,3 @@
-Here’s the updated **README.md**, including a section about investigating why WebAssembly runs slower than JavaScript.  
-
----
-
-### **📄 README.md**
-```md
 # 🚀 WebAssembly Particle Simulation
 
 A simple **C++ & WebAssembly** particle simulation with elastic collisions, rendered in the browser using JavaScript.
