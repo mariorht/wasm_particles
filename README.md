@@ -28,6 +28,7 @@ source "/opt/projects/wasm_particles/emsdk/emsdk_env.fish"
 ```sh
 emcc particle_simulation.cpp -o particles.js \
     -s WASM=1 \
+    -O3 \
     -s EXPORTED_FUNCTIONS="['_initParticles', '_updateParticles', '_getParticlePositions']" \
     -s EXPORTED_RUNTIME_METHODS="['cwrap']"
 ```
@@ -49,6 +50,8 @@ WebAssembly is expected to be faster than JavaScript, but in this project, **the
 - **Memory access overhead** when transferring data between WebAssembly and JavaScript.
 - **Function call overhead** due to frequent interactions between JS and WASM.
 - **WebAssembly optimizations missing** in the current compilation settings.
+
+**UPDATE** : copiling to wasm with -O3 flag overperform javascript.
 
 🚀 **Further debugging is needed to identify the exact cause.**
 
