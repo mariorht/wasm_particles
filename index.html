@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASM Particle Simulation</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            display: block;
+            margin: auto;
+        }
+        #fpsCounter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="fpsCounter">FPS: 0</div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <script src="particles.js"></script>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const fpsCounter = document.getElementById("fpsCounter");
+
+        let updateParticles, getParticlePositions, initParticles;
+        let particleCount = 1;
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        let lastFPSUpdate = performance.now();
+        let fps = 0;
+
+        Module.onRuntimeInitialized = function () {
+            initParticles = Module.cwrap('initParticles', null, ['number']);
+            updateParticles = Module.cwrap('updateParticles', null, ['number']);
+            getParticlePositions = Module.cwrap('getParticlePositions', 'number', []);
+
+            initParticles(particleCount);
+            requestAnimationFrame(update);
+        };
+
+        function update() {
+            let now = performance.now();
+            let deltaTime = (now - lastFrameTime) / 1000.0; // Convertir a segundos
+            lastFrameTime = now;
+
+            updateParticles(deltaTime);
+            render();
+
+            frameCount++;
+            if (now - lastFPSUpdate > 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFPSUpdate = now;
+                fpsCounter.innerText = `FPS: ${fps}`;
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const ptr = getParticlePositions();
+            const positions = new Float32Array(Module.HEAPF32.buffer, ptr, particleCount * 2);
+
+            ctx.fillStyle = "red";
+            for (let i = 0; i < particleCount; i++) {
+                const x = positions[i * 2];
+                const y = positions[i * 2 + 1];
+                ctx.beginPath();
+                ctx.arc(x, y, 7, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    </script>
+</body>
+</html>
