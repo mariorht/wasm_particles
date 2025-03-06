@@ -11,9 +11,9 @@ struct Particle {
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
-const float GRAVITY = 0.0f;
-const float DAMPING = 1.0f;
-const float RADIUS = 7.0f; // Radio de cada partícula
+const float RADIUS = 7.0f;  // Radio de cada partícula
+const float DAMPING = 1.0f; // Sin pérdida de energía
+const float GRAVITY = 0.0f; // Sin gravedad
 
 std::vector<Particle> particles;
 
@@ -27,8 +27,8 @@ extern "C" {
             Particle p;
             p.x = rand() % WIDTH;
             p.y = rand() % HEIGHT;
-            p.vx = (rand() % 200 - 100) / 50.0f;
-            p.vy = (rand() % 200 - 100) / 50.0f;
+            p.vx = (rand() % 200 - 100) / 50.0f;  // Velocidad aleatoria en X
+            p.vy = (rand() % 200 - 100) / 50.0f;  // Velocidad aleatoria en Y
             particles.push_back(p);
         }
     }
@@ -36,18 +36,19 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void updateParticles(float dt) {
         for (auto &p : particles) {
-            p.vy += GRAVITY * dt;
-
+            p.vx *= DAMPING;
+            p.vy *= DAMPING;
+            
             p.x += p.vx;
             p.y += p.vy;
 
             // Rebote en los bordes
             if (p.x <= RADIUS || p.x >= WIDTH - RADIUS) {
-                p.vx *= -DAMPING;
+                p.vx *= -1;
                 p.x = p.x <= RADIUS ? RADIUS : WIDTH - RADIUS;
             }
             if (p.y <= RADIUS || p.y >= HEIGHT - RADIUS) {
-                p.vy *= -DAMPING;
+                p.vy *= -1;
                 p.y = p.y <= RADIUS ? RADIUS : HEIGHT - RADIUS;
             }
         }
@@ -60,19 +61,19 @@ extern "C" {
                 float dist = sqrt(dx * dx + dy * dy);
 
                 if (dist < 2 * RADIUS) { // Si están tocándose
-                    // Normalizar la dirección de la colisión
                     float nx = dx / dist;
                     float ny = dy / dist;
 
-                    // Producto escalar para intercambiar velocidades
+                    // Producto escalar (proyección de velocidades en la dirección de la colisión)
                     float vi = particles[i].vx * nx + particles[i].vy * ny;
                     float vj = particles[j].vx * nx + particles[j].vy * ny;
 
+                    // Intercambio de velocidades en la dirección normal
                     float temp = vi;
                     vi = vj;
                     vj = temp;
 
-                    // Asignar nuevas velocidades
+                    // Aplicar las nuevas velocidades en la dirección de la colisión
                     particles[i].vx += (vi - (particles[i].vx * nx + particles[i].vy * ny)) * nx;
                     particles[i].vy += (vi - (particles[i].vx * nx + particles[i].vy * ny)) * ny;
                     particles[j].vx += (vj - (particles[j].vx * nx + particles[j].vy * ny)) * nx;
