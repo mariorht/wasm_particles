@@ -2,6 +2,8 @@
 
 A simple **C++ & WebAssembly** particle simulation with elastic collisions, rendered in the browser using JavaScript.
 
+[You can play with it](https://mariorht.github.io/wasm_particles/)
+
 ## 📦 Install Emscripten
 
 ```sh
