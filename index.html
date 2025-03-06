@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WASM Particle Simulation (Unlimited Physics FPS)</title>
+    <title>WASM vs JS Particle Simulation</title>
     <style>
         canvas {
             border: 1px solid black;
@@ -19,66 +19,124 @@
             padding: 5px 10px;
             font-family: Arial, sans-serif;
         }
+        #controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="fpsCounter">Render FPS: 0 | Physics FPS: 0</div>
+    <div id="controls">
+        <button onclick="startWASM()">Ejecutar WebAssembly</button>
+        <button onclick="startJS()">Ejecutar JavaScript</button>
+    </div>
     <canvas id="canvas" width="800" height="600"></canvas>
     <script src="particles.js"></script>
+    <script src="particles_js.js"></script>
     <script>
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
         const fpsCounter = document.getElementById("fpsCounter");
 
-        let updateParticles, getParticlePositions, initParticles;
-        let particleCount = 100;
-        let lastRenderTime = performance.now();
-        let lastPhysicsTime = performance.now();
         let renderFrameCount = 0;
         let physicsFrameCount = 0;
         let lastFPSUpdate = performance.now();
         let renderFPS = 0;
         let physicsFPS = 0;
 
+        let isWASM = false;
+        let isJS = false;
+        let physicsLoopID = null;
+        let renderLoopID = null;
+
+        let updateParticles, getParticlePositions, initParticles;
+        let particleCount = 1000;
+        let lastPhysicsTime = performance.now();
+
         Module.onRuntimeInitialized = function () {
             initParticles = Module.cwrap('initParticles', null, ['number']);
             updateParticles = Module.cwrap('updateParticles', null, ['number']);
             getParticlePositions = Module.cwrap('getParticlePositions', 'number', []);
-
-            initParticles(particleCount);
-
-            // Iniciar los dos bucles independientes
-            physicsLoop();  // Ejecutar la física sin límites
-            requestAnimationFrame(renderLoop);  // Renderizar a la tasa del monitor
         };
 
-        // **Bucle de Física sin límite de FPS**
-        function physicsLoop() {
+        function startWASM() {
+            stopSimulation();
+            isWASM = true;
+            initParticles(particleCount);
+            physicsLoopWASM();
+            renderLoop();
+        }
+
+        function startJS() {
+            stopSimulation();
+            isJS = true;
+            initParticlesJS(particleCount);
+            physicsLoopJS();
+            renderLoop();
+        }
+
+        function stopSimulation() {
+            isWASM = false;
+            isJS = false;
+            physicsFrameCount = 0;
+            renderFrameCount = 0;
+            lastPhysicsTime = performance.now();
+
+            if (physicsLoopID) {
+                clearTimeout(physicsLoopID);
+                physicsLoopID = null;
+            }
+            if (renderLoopID) {
+                cancelAnimationFrame(renderLoopID);
+                renderLoopID = null;
+            }
+        }
+
+        function physicsLoopWASM() {
+            if (!isWASM) return;
+
             let now = performance.now();
-            let deltaTime = (now - lastPhysicsTime) / 1000.0; // Convertir a segundos
+            let deltaTime = (now - lastPhysicsTime) / 1000.0;
             lastPhysicsTime = now;
 
-            updateParticles(deltaTime); // Actualizar la simulación
-
+            updateParticles(deltaTime);
             physicsFrameCount++;
 
-            setTimeout(physicsLoop, 0);  // Llamar inmediatamente de nuevo
+            physicsLoopID = setTimeout(physicsLoopWASM, 0);
         }
 
-        // **Bucle de Renderizado (sincronizado con el monitor)**
+        function physicsLoopJS() {
+            if (!isJS) return;
+
+            let now = performance.now();
+            let deltaTime = (now - lastPhysicsTime) / 1000.0;
+            lastPhysicsTime = now;
+
+            updateParticlesJS(deltaTime);
+            physicsFrameCount++;
+
+            physicsLoopID = setTimeout(physicsLoopJS, 0);
+        }
+
         function renderLoop() {
-            render();
+            if (!isWASM && !isJS) return;
 
-            renderFrameCount++;
-
-            requestAnimationFrame(renderLoop);
-        }
-
-        function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const ptr = getParticlePositions();
-            const positions = new Float32Array(Module.HEAPF32.buffer, ptr, particleCount * 2);
+            let positions;
+            if (isWASM) {
+                const ptr = getParticlePositions();
+                positions = new Float32Array(Module.HEAPF32.buffer, ptr, particleCount * 2);
+            } else if (isJS) {
+                positions = getParticlePositionsJS();
+            }
 
             ctx.fillStyle = "red";
             for (let i = 0; i < particleCount; i++) {
@@ -89,7 +147,8 @@
                 ctx.fill();
             }
 
-            // Actualizar contador de FPS cada segundo
+            renderFrameCount++;
+
             let now = performance.now();
             if (now - lastFPSUpdate > 1000) {
                 renderFPS = renderFrameCount;
@@ -99,6 +158,8 @@
                 lastFPSUpdate = now;
                 fpsCounter.innerText = `Render FPS: ${renderFPS} | Physics FPS: ${physicsFPS}`;
             }
+
+            renderLoopID = requestAnimationFrame(renderLoop);
         }
     </script>
 </body>
