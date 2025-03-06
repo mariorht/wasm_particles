@@ -58,33 +58,29 @@ extern "C" {
             for (size_t j = i + 1; j < particles.size(); j++) {
                 float dx = particles[j].x - particles[i].x;
                 float dy = particles[j].y - particles[i].y;
-                float dist = sqrt(dx * dx + dy * dy);
+                float dist = std::sqrt(dx * dx + dy * dy);
+                float minDist = 2 * RADIUS;
 
-                if (dist < 2 * RADIUS) { // Si están tocándose
+                if (dist < minDist) { // Si hay colisión
                     float nx = dx / dist;
                     float ny = dy / dist;
 
-                    // Producto escalar (proyección de velocidades en la dirección de la colisión)
-                    float vi = particles[i].vx * nx + particles[i].vy * ny;
-                    float vj = particles[j].vx * nx + particles[j].vy * ny;
-
-                    // Intercambio de velocidades en la dirección normal
-                    float temp = vi;
-                    vi = vj;
-                    vj = temp;
-
-                    // Aplicar las nuevas velocidades en la dirección de la colisión
-                    particles[i].vx += (vi - (particles[i].vx * nx + particles[i].vy * ny)) * nx;
-                    particles[i].vy += (vi - (particles[i].vx * nx + particles[i].vy * ny)) * ny;
-                    particles[j].vx += (vj - (particles[j].vx * nx + particles[j].vy * ny)) * nx;
-                    particles[j].vy += (vj - (particles[j].vx * nx + particles[j].vy * ny)) * ny;
-
                     // Separar partículas para evitar solapamientos
-                    float overlap = (2 * RADIUS - dist) / 2;
+                    float overlap = (minDist - dist) / 2;
                     particles[i].x -= overlap * nx;
                     particles[i].y -= overlap * ny;
                     particles[j].x += overlap * nx;
                     particles[j].y += overlap * ny;
+
+                    // Producto escalar para obtener la velocidad en la dirección de la colisión
+                    float vi = particles[i].vx * nx + particles[i].vy * ny;
+                    float vj = particles[j].vx * nx + particles[j].vy * ny;
+
+                    // Intercambiar velocidades en la dirección normal (conservación de energía)
+                    particles[i].vx += (vj - vi) * nx;
+                    particles[i].vy += (vj - vi) * ny;
+                    particles[j].vx += (vi - vj) * nx;
+                    particles[j].vy += (vi - vj) * ny;
                 }
             }
         }

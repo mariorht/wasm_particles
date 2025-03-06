@@ -14,14 +14,17 @@ function initParticlesJS(count) {
 
 function updateParticlesJS(dt) {
     const gravity = 0.0;
-    const damping = 1.0;
     const radius = 7.0;
+    let totalEnergy = 0; // Variable para almacenar la energía total del sistema
 
     for (let p of particlesJS) {
         p.vy += gravity * dt;
 
         p.x += p.vx;
         p.y += p.vy;
+
+        // Cálculo de la energía cinética de cada partícula
+        totalEnergy += 0.5 * (p.vx * p.vx + p.vy * p.vy);
 
         // Rebote en bordes
         if (p.x <= radius || p.x >= 800 - radius) {
@@ -57,20 +60,20 @@ function updateParticlesJS(dt) {
                 let vi = particlesJS[i].vx * nx + particlesJS[i].vy * ny;
                 let vj = particlesJS[j].vx * nx + particlesJS[j].vy * ny;
 
-                // Intercambio de velocidades en la dirección normal
-                let temp = vi;
-                vi = vj;
-                vj = temp;
-
-                // Aplicar las nuevas velocidades en la dirección de la colisión
-                particlesJS[i].vx += (vi - (particlesJS[i].vx * nx + particlesJS[i].vy * ny)) * nx;
-                particlesJS[i].vy += (vi - (particlesJS[i].vx * nx + particlesJS[i].vy * ny)) * ny;
-                particlesJS[j].vx += (vj - (particlesJS[j].vx * nx + particlesJS[j].vy * ny)) * nx;
-                particlesJS[j].vy += (vj - (particlesJS[j].vx * nx + particlesJS[j].vy * ny)) * ny;
+                // Intercambiar las velocidades en la dirección normal (correctamente)
+                particlesJS[i].vx += (vj - vi) * nx;
+                particlesJS[i].vy += (vj - vi) * ny;
+                particlesJS[j].vx += (vi - vj) * nx;
+                particlesJS[j].vy += (vi - vj) * ny;
             }
         }
     }
+
+    // Log de la energía total del sistema en cada iteración
+    console.log(`Energía Total: ${totalEnergy.toFixed(5)}`);
 }
+
+
 
 function getParticlePositionsJS() {
     let positions = [];
