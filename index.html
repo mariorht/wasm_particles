@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WASM Particle Simulation</title>
+    <title>WASM Particle Simulation (Unlimited Physics FPS)</title>
     <style>
         canvas {
             border: 1px solid black;
             display: block;
-            margin: auto;
+            margin: 50px auto;
         }
         #fpsCounter {
             position: absolute;
@@ -22,7 +22,7 @@
     </style>
 </head>
 <body>
-    <div id="fpsCounter">FPS: 0</div>
+    <div id="fpsCounter">Render FPS: 0 | Physics FPS: 0</div>
     <canvas id="canvas" width="800" height="600"></canvas>
     <script src="particles.js"></script>
     <script>
@@ -31,11 +31,14 @@
         const fpsCounter = document.getElementById("fpsCounter");
 
         let updateParticles, getParticlePositions, initParticles;
-        let particleCount = 1;
-        let lastFrameTime = performance.now();
-        let frameCount = 0;
+        let particleCount = 100;
+        let lastRenderTime = performance.now();
+        let lastPhysicsTime = performance.now();
+        let renderFrameCount = 0;
+        let physicsFrameCount = 0;
         let lastFPSUpdate = performance.now();
-        let fps = 0;
+        let renderFPS = 0;
+        let physicsFPS = 0;
 
         Module.onRuntimeInitialized = function () {
             initParticles = Module.cwrap('initParticles', null, ['number']);
@@ -43,26 +46,32 @@
             getParticlePositions = Module.cwrap('getParticlePositions', 'number', []);
 
             initParticles(particleCount);
-            requestAnimationFrame(update);
+
+            // Iniciar los dos bucles independientes
+            physicsLoop();  // Ejecutar la física sin límites
+            requestAnimationFrame(renderLoop);  // Renderizar a la tasa del monitor
         };
 
-        function update() {
+        // **Bucle de Física sin límite de FPS**
+        function physicsLoop() {
             let now = performance.now();
-            let deltaTime = (now - lastFrameTime) / 1000.0; // Convertir a segundos
-            lastFrameTime = now;
+            let deltaTime = (now - lastPhysicsTime) / 1000.0; // Convertir a segundos
+            lastPhysicsTime = now;
 
-            updateParticles(deltaTime);
+            updateParticles(deltaTime); // Actualizar la simulación
+
+            physicsFrameCount++;
+
+            setTimeout(physicsLoop, 0);  // Llamar inmediatamente de nuevo
+        }
+
+        // **Bucle de Renderizado (sincronizado con el monitor)**
+        function renderLoop() {
             render();
 
-            frameCount++;
-            if (now - lastFPSUpdate > 1000) {
-                fps = frameCount;
-                frameCount = 0;
-                lastFPSUpdate = now;
-                fpsCounter.innerText = `FPS: ${fps}`;
-            }
+            renderFrameCount++;
 
-            requestAnimationFrame(update);
+            requestAnimationFrame(renderLoop);
         }
 
         function render() {
@@ -78,6 +87,17 @@
                 ctx.beginPath();
                 ctx.arc(x, y, 7, 0, Math.PI * 2);
                 ctx.fill();
+            }
+
+            // Actualizar contador de FPS cada segundo
+            let now = performance.now();
+            if (now - lastFPSUpdate > 1000) {
+                renderFPS = renderFrameCount;
+                physicsFPS = physicsFrameCount;
+                renderFrameCount = 0;
+                physicsFrameCount = 0;
+                lastFPSUpdate = now;
+                fpsCounter.innerText = `Render FPS: ${renderFPS} | Physics FPS: ${physicsFPS}`;
             }
         }
     </script>
