@@ -51,7 +51,7 @@ WebAssembly is expected to be faster than JavaScript, but in this project, **the
 - **Function call overhead** due to frequent interactions between JS and WASM.
 - **WebAssembly optimizations missing** in the current compilation settings.
 
-**UPDATE** : copiling to wasm with -O3 flag overperform javascript.
+**UPDATE** : compiling to wasm with -O3 flag outperforms javascript.
 
 🚀 **Further debugging is needed to identify the exact cause.**
 
