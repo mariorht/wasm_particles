@@ -36,6 +36,10 @@
     <div id="controls">
         <label for="particleCount">Number of Particles:</label>
         <input type="number" id="particleCount" value="100" min="1" max="10000">
+
+        <label for="ballRadius">Ball Radius:</label>
+        <input type="number" id="ballRadius" value="7" min="1" max="50">
+
         <button onclick="startWASM()">Run WebAssembly</button>
         <button onclick="startJS()">Run JavaScript</button>
     </div>
@@ -48,6 +52,7 @@
         const ctx = canvas.getContext("2d");
         const fpsCounter = document.getElementById("fpsCounter");
         const particleInput = document.getElementById("particleCount");
+        const radiusInput = document.getElementById("ballRadius");
 
         let renderFrameCount = 0;
         let physicsFrameCount = 0;
@@ -61,14 +66,21 @@
         let renderLoopID = null;
         let updateParticles, getParticlePositions, initParticles;
         let particleCount = parseInt(particleInput.value);
+        let ballRadius = parseFloat(radiusInput.value);
         let lastPhysicsTime = performance.now();
+        let particleColors = [];
 
         particleInput.addEventListener("change", () => {
             particleCount = parseInt(particleInput.value);
+            generateColors();
+        });
+
+        radiusInput.addEventListener("change", () => {
+            ballRadius = parseFloat(radiusInput.value);
         });
 
         Module.onRuntimeInitialized = function () {
-            initParticles = Module.cwrap('initParticles', null, ['number']);
+            initParticles = Module.cwrap('initParticles', null, ['number', 'number']);
             updateParticles = Module.cwrap('updateParticles', null, ['number']);
             getParticlePositions = Module.cwrap('getParticlePositions', 'number', []);
         };
@@ -76,7 +88,8 @@
         function startWASM() {
             stopSimulation();
             isWASM = true;
-            initParticles(particleCount);
+            generateColors();
+            initParticles(particleCount, ballRadius);
             physicsLoopWASM();
             requestAnimationFrame(renderLoop);
         }
@@ -84,9 +97,17 @@
         function startJS() {
             stopSimulation();
             isJS = true;
-            initParticlesJS(particleCount);
+            generateColors();
+            initParticlesJS(particleCount, ballRadius);
             physicsLoopJS();
             requestAnimationFrame(renderLoop);
+        }
+
+        function generateColors() {
+            particleColors = [];
+            for (let i = 0; i < particleCount; i++) {
+                particleColors.push(`hsl(${Math.random() * 360}, 100%, 50%)`);
+            }
         }
 
         function stopSimulation() {
@@ -145,12 +166,13 @@
                 positions = getParticlePositionsJS();
             }
 
-            ctx.fillStyle = "red";
             for (let i = 0; i < particleCount; i++) {
                 const x = positions[i * 2];
                 const y = positions[i * 2 + 1];
+
+                ctx.fillStyle = particleColors[i]; // ✅ Fix: Apply color before drawing
                 ctx.beginPath();
-                ctx.arc(x, y, 7, 0, Math.PI * 2);
+                ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -168,6 +190,9 @@
 
             renderLoopID = requestAnimationFrame(renderLoop);
         }
+
+        // Generate colors on load
+        generateColors();
     </script>
 </body>
 </html>

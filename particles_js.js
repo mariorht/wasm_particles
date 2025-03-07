@@ -1,20 +1,20 @@
 let particlesJS = [];
 
-function initParticlesJS(count) {
+function initParticlesJS(count, radius) {
     particlesJS = [];
     for (let i = 0; i < count; i++) {
         particlesJS.push({
             x: Math.random() * 800,
             y: Math.random() * 600,
             vx: (Math.random() * 2 - 1) * 2,
-            vy: (Math.random() * 2 - 1) * 2
+            vy: (Math.random() * 2 - 1) * 2,
+            radius: radius
         });
     }
 }
 
 function updateParticlesJS(dt) {
     const gravity = 0.0;
-    const radius = 7.0;
     let totalEnergy = 0; // Variable para almacenar la energía total del sistema
 
     for (let p of particlesJS) {
@@ -27,13 +27,13 @@ function updateParticlesJS(dt) {
         totalEnergy += 0.5 * (p.vx * p.vx + p.vy * p.vy);
 
         // Rebote en bordes
-        if (p.x <= radius || p.x >= 800 - radius) {
+        if (p.x <= p.radius || p.x >= 800 - p.radius) {
             p.vx *= -1;
-            p.x = p.x <= radius ? radius : 800 - radius;
+            p.x = p.x <= p.radius ? p.radius : 800 - p.radius;
         }
-        if (p.y <= radius || p.y >= 600 - radius) {
+        if (p.y <= p.radius || p.y >= 600 - p.radius) {
             p.vy *= -1;
-            p.y = p.y <= radius ? radius : 600 - radius;
+            p.y = p.y <= p.radius ? p.radius : 600 - p.radius;
         }
     }
 
@@ -43,7 +43,7 @@ function updateParticlesJS(dt) {
             let dx = particlesJS[j].x - particlesJS[i].x;
             let dy = particlesJS[j].y - particlesJS[i].y;
             let dist = Math.sqrt(dx * dx + dy * dy);
-            let minDist = 2 * radius;
+            let minDist = particlesJS[j].radius + particlesJS[i].radius;
 
             if (dist < minDist) { // Si hay colisión (overlap)
                 let nx = dx / dist;

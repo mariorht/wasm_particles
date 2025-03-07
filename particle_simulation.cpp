@@ -7,11 +7,11 @@
 struct Particle {
     float x, y;
     float vx, vy;
+    float radius = 10.0f;
 };
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
-const float RADIUS = 7.0f;  // Radio de cada partícula
 const float DAMPING = 1.0f; // Sin pérdida de energía
 const float GRAVITY = 0.0f; // Sin gravedad
 
@@ -20,7 +20,7 @@ std::vector<Particle> particles;
 extern "C" {
 
     EMSCRIPTEN_KEEPALIVE
-    void initParticles(int count) {
+    void initParticles(int count, float radius) {
         particles.clear();
         srand(time(0));
         for (int i = 0; i < count; i++) {
@@ -29,6 +29,7 @@ extern "C" {
             p.y = rand() % HEIGHT;
             p.vx = (rand() % 200 - 100) / 50.0f;  // Velocidad aleatoria en X
             p.vy = (rand() % 200 - 100) / 50.0f;  // Velocidad aleatoria en Y
+            p.radius = radius;
             particles.push_back(p);
         }
     }
@@ -43,13 +44,13 @@ extern "C" {
             p.y += p.vy;
 
             // Rebote en los bordes
-            if (p.x <= RADIUS || p.x >= WIDTH - RADIUS) {
+            if (p.x <= p.radius || p.x >= WIDTH - p.radius) {
                 p.vx *= -1;
-                p.x = p.x <= RADIUS ? RADIUS : WIDTH - RADIUS;
+                p.x = p.x <= p.radius ? p.radius : WIDTH - p.radius;
             }
-            if (p.y <= RADIUS || p.y >= HEIGHT - RADIUS) {
+            if (p.y <= p.radius || p.y >= HEIGHT - p.radius) {
                 p.vy *= -1;
-                p.y = p.y <= RADIUS ? RADIUS : HEIGHT - RADIUS;
+                p.y = p.y <= p.radius ? p.radius : HEIGHT - p.radius;
             }
         }
 
@@ -59,7 +60,7 @@ extern "C" {
                 float dx = particles[j].x - particles[i].x;
                 float dy = particles[j].y - particles[i].y;
                 float dist = std::sqrt(dx * dx + dy * dy);
-                float minDist = 2 * RADIUS;
+                float minDist = particles[j].radius + particles[i].radius;
 
                 if (dist < minDist) { // Si hay colisión
                     float nx = dx / dist;
