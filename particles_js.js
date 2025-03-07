@@ -70,7 +70,7 @@ function updateParticlesJS(dt) {
     }
 
     // Log de la energía total del sistema en cada iteración
-    console.log(`Energía Total: ${totalEnergy.toFixed(5)}`);
+    console.log(`Javascript - Energía total: ${totalEnergy.toFixed(3)}`);
 }
 
 

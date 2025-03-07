@@ -3,6 +3,7 @@
 #include <ctime>
 #include <cmath>
 #include <emscripten.h>
+#include <cstdio>
 
 struct Particle {
     float x, y;
@@ -36,12 +37,17 @@ extern "C" {
 
     EMSCRIPTEN_KEEPALIVE
     void updateParticles(float dt) {
+        float totalEnergy = 0.0f;
         for (auto &p : particles) {
             p.vx *= DAMPING;
             p.vy *= DAMPING;
             
             p.x += p.vx;
             p.y += p.vy;
+
+            // Compute kinetic energy (E = 1/2 * m * v^2) 
+            // Assuming mass m = 1 for simplicity
+            totalEnergy += 0.5f * (p.vx * p.vx + p.vy * p.vy);
 
             // Rebote en los bordes
             if (p.x <= p.radius || p.x >= WIDTH - p.radius) {
@@ -53,6 +59,15 @@ extern "C" {
                 p.y = p.y <= p.radius ? p.radius : HEIGHT - p.radius;
             }
         }
+
+        // Format the energy to 3 decimal places
+        char buffer[20];
+        snprintf(buffer, sizeof(buffer), "%.3f", totalEnergy);
+
+        // Print to JavaScript console
+        EM_ASM({
+            console.log("C++        - Energía total: " + UTF8ToString($0));
+        }, buffer);
 
         // Detectar colisiones entre partículas
         for (size_t i = 0; i < particles.size(); i++) {
